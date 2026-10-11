@@ -1,0 +1,6 @@
+#!/bin/sh
+# Enabled by: git config core.hooksPath .githooks
+set -e
+top="$(git rev-parse --show-toplevel)"
+"$top/scripts/check-leaks.sh" staged
+"$top/scripts/lint.sh"

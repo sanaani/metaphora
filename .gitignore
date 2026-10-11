@@ -1,0 +1,37 @@
+# Code-only repository. Data, models and credentials never live here; see docs/data-policy.md.
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+build/
+dist/
+.claude/
+
+# Data and outputs live in ~/metaphora-data, outside the repo.
+data/
+outputs/
+work/
+*.parquet
+*.npz
+*.npy
+*.pt
+*.safetensors
+*.bin
+*.ckpt
+*.jsonl
+*.jsonl.gz
+*.csv.gz
+*.sqlite
+*.db
+
+# Credentials, in any form.
+.env
+.env.*
+*.pem
+*.key
+*key*.txt
+*secret*
+*credential*
+denylist*.txt

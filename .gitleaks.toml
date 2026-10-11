@@ -1,0 +1,9 @@
+# gitleaks's default rules, plus this repo's own. The private deny-list is separate
+# (scripts/check-leaks.sh) because naming those terms here would publish them.
+[extend]
+useDefault = true
+
+[[rules]]
+id = "openalex-api-key"
+description = "OpenAlex API key in an api_key parameter or assignment"
+regex = '''(?i)api_key\s*[=:]\s*["']?[A-Za-z0-9]{16,}'''

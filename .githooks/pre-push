@@ -1,0 +1,9 @@
+#!/bin/sh
+# Enabled by: git config core.hooksPath .githooks
+set -e
+top="$(git rev-parse --show-toplevel)"
+"$top/scripts/check-leaks.sh" tree
+"$top/scripts/lint.sh"
+py="$top/.venv/bin/python"; [ -x "$py" ] || py="$HOME/dianoia-data/venv/Scripts/python.exe"
+[ -x "$py" ] || py=python3
+cd "$top" && PYTHONPATH=src "$py" -m pytest -q
