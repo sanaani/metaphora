@@ -80,3 +80,32 @@ of their citations before T (and at least 5) come from math papers of known cate
 rebuilt; the rebuild again printed arrival and three-or-more counts at every date, because an edit
 removing that printout had failed. The printout is now gone (units.py prints unit and idea counts
 only). Nothing has been chosen with those counts.
+
+## 10/12/2026: results (test date 2016, run once)
+
+Verdicts in `verdicts.json`, from `evaluate.py` as pre-written. 31 math categories had took-hold
+events at the tuning date, so k totals 3,061 test picks. At T = 2016, 3,985 of 85.4 million units
+took hold: 1 in 21,400.
+
+| Ranking | Precision at k | 95% interval |
+|---|---:|---|
+| Habit (the home's travel rate) | 0.03% | 0.00% to 0.13% |
+| Baseline | 4.70% | 3.92% to 5.46% |
+| Baseline + text | 4.67% | 3.92% to 5.42% |
+
+- **H1 passes.** The baseline beats habit by 4.67 points (95% interval 3.92 to 5.42); its picks
+  take hold about 1,000 times more often than chance. Most of its weight is on the idea's recent
+  citations from mathematics and on the home's habit.
+- **H2 fails.** Text similarity adds nothing (-0.03 points, interval -0.33 to +0.33), although it
+  carried weight in training.
+
+What the top picks look like: a mix of general tools crossing math areas (ridge regression and
+robust estimation into functional analysis, sliced inverse regression into numerical analysis) and
+genuine cross-area uptake (tensor eigenvalues into mathematical physics, chemotaxis PDE models into
+classical analysis).
+
+**Limits found:**
+- 43% of ideas have a title but no abstract in OpenAlex, which weakens the text test.
+- A destination can come from the journal's commonest arXiv category, so every paper in a broad
+  journal gets one label (an optimization method "taken up" in combinatorics).
+- Textbooks pass the band and travel as ideas (*Algebraic Geometry* into general topology).
