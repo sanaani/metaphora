@@ -29,7 +29,11 @@ def home_sql(t: str, citers: bool) -> str:
     category), v (venues) and, for ideas, ci (arXiv citers before the date)."""
     rows = [
         ("ox.cat IS NOT NULL", "'arxiv'", "ox.cat"),
-        (f"v.n_known >= {VENUE_MIN} AND v.top_group_share >= 0.5", "'venue'", "v.venue_cat"),
+        (
+            f"v.n_known >= {VENUE_MIN} AND v.top_group_share >= 0.5 AND v.lift > 1",
+            "'venue'",
+            "v.venue_cat",
+        ),
         (f"v.n_known >= {VENUE_MIN}", "'general-venue'", f"'field:' || {t}.field"),
     ]
     if citers:
@@ -54,14 +58,26 @@ def main(p1: str, arx: str, src: str, out: str, dates: list[int]) -> None:
         SELECT TRY_CAST(regexp_extract(id, '[0-9]+$') AS BIGINT) AS source, type AS src_type
         FROM read_parquet('{src}')""")
     # A journal's character, from the categories its authors chose for its arXiv-posted papers.
+    # Two witnesses must agree before the arXiv sample names the journal's home: its arXiv
+    # authors' majority group, and its own commonest OpenAlex field, which must be one that arXiv
+    # papers of that group carry more often than arXiv papers overall (lift > 1). Only some fields
+    # post to arXiv, so a general journal's arXiv sample is mostly physics (Nature 97%, Science
+    # 98%); its commonest field (Medicine) is not a physics field, so it counts as general.
     c.execute("""CREATE OR REPLACE TABLE venues AS
-        WITH a AS (SELECT w.source, x.cat, x.grp FROM works w JOIN arx x USING (arxiv)
+        WITH a AS (SELECT w.source, w.field, x.cat, x.grp FROM works w JOIN arx x USING (arxiv)
                    WHERE w.source IS NOT NULL),
         g AS (SELECT source, grp, count(*) AS n FROM a GROUP BY ALL),
-        s AS (SELECT source, sum(n) AS n_known, max(n) / sum(n) AS top_group_share
-              FROM g GROUP BY source),
-        m AS (SELECT source, mode(cat) AS venue_cat FROM a GROUP BY source)
-        SELECT * FROM s JOIN m USING (source)""")
+        s AS (SELECT source, sum(n) AS n_known, max(n) / sum(n) AS top_group_share,
+                     arg_max(grp, n) AS top_group FROM g GROUP BY source),
+        m AS (SELECT source, mode(cat) AS venue_cat FROM a GROUP BY source),
+        f AS (SELECT source, mode(field) AS top_field FROM works
+              WHERE source IS NOT NULL AND field IS NOT NULL GROUP BY source),
+        gf AS (SELECT grp, field, count(*) AS n FROM a WHERE field IS NOT NULL GROUP BY ALL),
+        lift AS (SELECT grp, field, (n / sum(n) OVER (PARTITION BY grp))
+                        / (sum(n) OVER (PARTITION BY field) / sum(n) OVER ()) AS lift FROM gf)
+        SELECT s.*, m.venue_cat, f.top_field, coalesce(l.lift, 0) AS lift
+        FROM s JOIN m USING (source) LEFT JOIN f USING (source)
+        LEFT JOIN lift l ON l.grp = s.top_group AND l.field = f.top_field""")
     c.execute(f"COPY venues TO '{out}/venues.parquet' (FORMAT parquet)")
     for t in dates:
         one(c, out, t)

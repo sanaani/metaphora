@@ -32,7 +32,7 @@ def build(tmp: Path) -> None:
 
     # Group A: 1,000 peers in 2000; work i gets 100 - i citations for i < 100, so the top 20 pass.
     for i in range(1, 1001):
-        src = {3: 501, 4: 502, 8: 503}.get(i)
+        src = {3: 501, 4: 502, 8: 503, 9: 504}.get(i)
         arxiv = {1: "math/0001001", 2: "0001.0002"}.get(i)
         field = 31 if i == 6 else 26
         works.append(work(i, 2000, A, field=field, source=src, arxiv=arxiv))
@@ -40,13 +40,21 @@ def build(tmp: Path) -> None:
             cite(i, 100 - i, arxiv_cat="math.PR" if i == 5 else None)
     arx += [("math/0001001", "math.AG"), ("0001.0002", "hep-th")]
     # Journals, judged by their arXiv-posted papers: 501 all math.NT (specialized, math); 502
-    # spread over four groups (general); 503 all cond-mat (specialized, not math).
-    mixes = {501: ["math.NT"], 502: ["math.CO", "hep-th", "cs.LG", "q-bio.PE"], 503: ["cond-mat"]}
-    for k, (venue, cats) in enumerate(mixes.items()):
+    # spread over four groups (general); 503 all cond-mat (specialized, not math); 504 a general
+    # journal whose few arXiv papers are physics but whose own papers are mostly medicine.
+    mixes = {
+        501: (["math.NT"], 26),
+        502: (["math.CO", "hep-th", "cs.LG", "q-bio.PE"], 26),
+        503: (["cond-mat"], 31),
+        504: (["cond-mat"], 31),
+    }
+    for k, (venue, (cats, field)) in enumerate(mixes.items()):
         for j in range(12):
             a = f"v{venue}-{j}"
-            works.append(work(5000 + 100 * k + j, 1990, 9999, source=venue, arxiv=a))
+            works.append(work(5000 + 100 * k + j, 1990, 9999, field=field, source=venue, arxiv=a))
             arx.append((a, cats[j % len(cats)]))
+    for j in range(40):
+        works.append(work(5900 + j, 1990, 9998, field=27, source=504))
     # Group B: 3,000 peers; works 2001 and 2002 are above the max line.
     for i in range(1, 3001):
         typ = "book" if i == 2 else "article"
@@ -75,7 +83,7 @@ def build(tmp: Path) -> None:
     c.execute(f"COPY e TO '{tmp}/p1/edges/x.parquet' (FORMAT parquet)")
     c.execute(f"COPY a TO '{tmp}/arx.parquet' (FORMAT parquet)")
     c.execute(f"""COPY (SELECT 'https://openalex.org/S' || s AS id, 'journal' AS type
-                  FROM (VALUES (501), (502), (503)) t(s)) TO '{tmp}/src.parquet' (FORMAT parquet)""")
+                  FROM (VALUES (501), (502), (503), (504)) t(s)) TO '{tmp}/src.parquet' (FORMAT parquet)""")
 
 
 def test_great_pass(tmp_path):
@@ -104,6 +112,7 @@ def test_great_pass(tmp_path):
     assert g[6] == ("own-field", "field:31", False)
     assert g[7] == ("own-field", "field:26", True)
     assert g[8] == ("venue", "cond-mat", False)
+    assert g[9] == ("general-venue", "field:26", True)  # arXiv says physics, OpenAlex medicine
     assert 2001 in g and 2002 not in g  # above the max line: article kept, book dropped
     assert 9001 not in g  # citations after the date do not count
     assert 9500 not in g  # younger than 8 years at the date
