@@ -20,8 +20,13 @@ GROUP = """CASE WHEN cat LIKE 'math%' THEN 'math' WHEN cat LIKE 'stat%' THEN 'st
                 WHEN cat LIKE 'cs.%' THEN 'cs' WHEN cat LIKE 'q-bio%' THEN 'q-bio'
                 WHEN cat LIKE 'q-fin%' THEN 'q-fin' WHEN cat LIKE 'econ%' THEN 'econ'
                 WHEN cat LIKE 'eess%' THEN 'eess' ELSE 'physics' END"""
-# The math universe: math (math-ph included), stat, or OpenAlex Mathematics / Decision Sciences.
-IN_MATH = "(home LIKE 'math%' OR home LIKE 'stat%' OR home IN ('field:26', 'field:18'))"
+# The math universe: math (math-ph included), stat, OpenAlex Mathematics, or the two mathematical
+# subfields of OpenAlex Decision Sciences (1803 operations research, 1804 statistics); its other
+# subfield, Information Systems and Management, is not mathematics.
+IN_MATH = (
+    "(home LIKE 'math%' OR home LIKE 'stat%' OR home = 'field:26'"
+    " OR (home = 'field:18' AND subfield IN (1803, 1804)))"
+)
 
 
 def home_sql(t: str, citers: bool) -> str:

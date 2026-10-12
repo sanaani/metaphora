@@ -62,6 +62,12 @@ def build(tmp: Path) -> None:
         works.append(work(2000 + i, 2000, B, typ=typ, refs=0 if i == 2 else 5))
         if i < 200:
             cite(2000 + i, 300 - i)
+    # Decision Sciences: operations research (1803) is in the math universe, information systems
+    # and management (1802) is not.
+    for sub, base in ((1803, 7000), (1802, 8000)):
+        for i in range(1, 101):
+            works.append(work(base + i, 2000, sub, field=18))
+        cite(base + 1, 50)
     # Leak check: a 2000 work whose only citations come after the date, and a 2012 work too young.
     for i in range(1, 101):
         works.append(work(9000 + i, 2000, LEAK))
@@ -117,6 +123,8 @@ def test_great_pass(tmp_path):
     assert g[8] == ("venue", "cond-mat", False)
     assert g[9] == ("general-venue", "field:26", True)  # arXiv says physics, OpenAlex medicine
     assert g[10] == ("own-field", "field:26", True)  # a platform is not a venue
+    assert g[7001] == ("own-field", "field:18", True)
+    assert g[8001] == ("own-field", "field:18", False)
     assert 2001 in g and 2002 not in g  # above the max line: article kept, book dropped
     assert 9001 not in g  # citations after the date do not count
     assert 9500 not in g  # younger than 8 years at the date
