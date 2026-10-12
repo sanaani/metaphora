@@ -129,3 +129,15 @@ OpenAlex subfields; an arXiv category becomes the subfield its arXiv papers most
   one-off arrivals (87%, mean 0.45 later citations) and sustained uptake (13%, mean 5.2). Four is
   the smallest count at which sustained uptake is the likelier source (65%; 40% at 3). About 7% of
   far arrivals took hold. Self-citation is not yet excluded.
+
+## 10/12/2026, later: took hold, without self-citation
+
+Author lists for the ideas and every citing work (15.5 million works) let later citations be
+counted only when they share no author with the idea or with the work that first brought it into
+the destination. That removes 16% of later citations. Refit on citations by others, the two
+populations are one-off arrivals (87%, mean 0.34 later citations) and sustained uptake (13%, mean
+4.5), and the line moves from 4 to 3: three later citations by others is the smallest count at which
+sustained uptake is the likelier source (55%; 27% at 2). **Proposed, awaiting approval:** an idea
+took hold in a far destination if, within 5 years of first arriving, at least 3 more works from that
+destination cite it, none sharing an author with the idea or the first arrival. By this line, 9% of
+far first arrivals from 2000 to 2010 took hold (29,623 of 327,700).
