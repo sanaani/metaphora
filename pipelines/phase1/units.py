@@ -92,11 +92,11 @@ def main(run: str, t: int, out: str) -> None:
                               coalesce(l.n, 0) AS later_others
                        FROM units u LEFT JOIN arr r USING (id, dest) LEFT JOIN later l USING (id, dest))
                   TO '{out}/units-{t}.parquet' (FORMAT parquet, COMPRESSION zstd)""")
+    # Outcomes are not printed: they are read only by evaluate.py's pre-written rules.
     print(
-        c.sql(f"""SELECT count(*) AS units, count(DISTINCT id) AS ideas,
-                           count(*) FILTER (WHERE arrived) AS arrived,
-                           count(*) FILTER (WHERE later_others >= 3) AS later3
-                    FROM '{out}/units-{t}.parquet'""")
+        c.sql(
+            f"SELECT count(*) AS units, count(DISTINCT id) AS ideas FROM '{out}/units-{t}.parquet'"
+        )
     )
 
 

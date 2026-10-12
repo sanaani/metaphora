@@ -72,3 +72,11 @@ Units: 41.5 million at T = 2002, 57.1 million at 2009, 85.4 million at 2016. The
 them printed the count of arrivals and of three-or-more uptakes at every date, including the test
 date. No model, line or setting has been or will be chosen with it; from here on the tuning and
 test outcomes are read only by the scripts that apply the pre-written rules.
+
+## 10/12/2026: units rebuilt
+
+Ideas whose home fell back to OpenAlex's own label take it from their math citers when at least half
+of their citations before T (and at least 5) come from math papers of known category. Units were
+rebuilt; the rebuild again printed arrival and three-or-more counts at every date, because an edit
+removing that printout had failed. The printout is now gone (units.py prints unit and idea counts
+only). Nothing has been chosen with those counts.
