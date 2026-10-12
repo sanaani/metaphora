@@ -1,6 +1,7 @@
 """The great-idea pass on a synthetic snapshot whose right answers are known by construction."""
 
 import importlib.util
+import sys
 from pathlib import Path
 
 import duckdb
@@ -128,3 +129,27 @@ def test_great_pass(tmp_path):
     assert 2001 in g and 2002 not in g  # above the max line: article kept, book dropped
     assert 9001 not in g  # citations after the date do not count
     assert 9500 not in g  # younger than 8 years at the date
+
+
+def test_destinations_pass(tmp_path):
+    build(tmp_path)
+    out = tmp_path / "out"
+    out.mkdir()
+    args = (str(tmp_path / "p1"), str(tmp_path / "arx.parquet"))
+    great.main(*args, str(tmp_path / "src.parquet"), str(out), [2016])
+    spec = importlib.util.spec_from_file_location(
+        "destinations", ROOT / "pipelines/snapshot/destinations.py"
+    )
+    sys.modules["great"] = great
+    dest = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(dest)
+    dest.main(*args, str(out), [2016])
+    mw = dict(duckdb.sql(f"SELECT id, dest FROM '{out}/math-works.parquet'").fetchall())
+    assert mw[1] == "math.AG"  # own arXiv category
+    assert mw[5000] == "math.NT"  # a specialized math journal's paper
+    assert 5200 not in mw  # a condensed-matter journal's paper is not a math destination
+    edges = duckdb.sql(f"SELECT cited, dest, count(*) FROM '{out}/math-edges.parquet' GROUP BY ALL")
+    by = {(r[0], r[1]): r[2] for r in edges.fetchall()}
+    assert by[(5, "math.PR")] == 95  # work 5's citers posted to math.PR
+    homes = dict(duckdb.sql(f"SELECT id, home_sub FROM '{out}/ideas-2016.parquet'").fetchall())
+    assert homes[7] == 2602  # an own-field home keeps its own subfield
