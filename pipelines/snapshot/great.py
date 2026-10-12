@@ -77,7 +77,10 @@ def main(p1: str, arx: str, src: str, out: str, dates: list[int]) -> None:
                         / (sum(n) OVER (PARTITION BY field) / sum(n) OVER ()) AS lift FROM gf)
         SELECT s.*, m.venue_cat, f.top_field, coalesce(l.lift, 0) AS lift
         FROM s JOIN m USING (source) LEFT JOIN f USING (source)
-        LEFT JOIN lift l ON l.grp = s.top_group AND l.field = f.top_field""")
+        LEFT JOIN lift l ON l.grp = s.top_group AND l.field = f.top_field
+        -- Only edited venues have a character; platforms and repositories host anything.
+        SEMI JOIN src ON src.source = s.source
+                     AND src.src_type IN ('journal', 'conference', 'book series')""")
     c.execute(f"COPY venues TO '{out}/venues.parquet' (FORMAT parquet)")
     for t in dates:
         one(c, out, t)

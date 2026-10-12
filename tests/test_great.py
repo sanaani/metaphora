@@ -32,7 +32,7 @@ def build(tmp: Path) -> None:
 
     # Group A: 1,000 peers in 2000; work i gets 100 - i citations for i < 100, so the top 20 pass.
     for i in range(1, 1001):
-        src = {3: 501, 4: 502, 8: 503, 9: 504}.get(i)
+        src = {3: 501, 4: 502, 8: 503, 9: 504, 10: 505}.get(i)
         arxiv = {1: "math/0001001", 2: "0001.0002"}.get(i)
         field = 31 if i == 6 else 26
         works.append(work(i, 2000, A, field=field, source=src, arxiv=arxiv))
@@ -47,6 +47,7 @@ def build(tmp: Path) -> None:
         502: (["math.CO", "hep-th", "cs.LG", "q-bio.PE"], 26),
         503: (["cond-mat"], 31),
         504: (["cond-mat"], 31),
+        505: (["math.NT"], 26),  # an ebook platform: hosts anything, so it names no home
     }
     for k, (venue, (cats, field)) in enumerate(mixes.items()):
         for j in range(12):
@@ -82,8 +83,10 @@ def build(tmp: Path) -> None:
     c.execute(f"COPY w TO '{tmp}/p1/works/x.parquet' (FORMAT parquet)")
     c.execute(f"COPY e TO '{tmp}/p1/edges/x.parquet' (FORMAT parquet)")
     c.execute(f"COPY a TO '{tmp}/arx.parquet' (FORMAT parquet)")
-    c.execute(f"""COPY (SELECT 'https://openalex.org/S' || s AS id, 'journal' AS type
-                  FROM (VALUES (501), (502), (503), (504)) t(s)) TO '{tmp}/src.parquet' (FORMAT parquet)""")
+    c.execute(f"""COPY (SELECT 'https://openalex.org/S' || s AS id, t AS type
+                  FROM (VALUES (501, 'journal'), (502, 'journal'), (503, 'journal'),
+                               (504, 'journal'), (505, 'ebook platform')) v(s, t))
+                  TO '{tmp}/src.parquet' (FORMAT parquet)""")
 
 
 def test_great_pass(tmp_path):
@@ -113,6 +116,7 @@ def test_great_pass(tmp_path):
     assert g[7] == ("own-field", "field:26", True)
     assert g[8] == ("venue", "cond-mat", False)
     assert g[9] == ("general-venue", "field:26", True)  # arXiv says physics, OpenAlex medicine
+    assert g[10] == ("own-field", "field:26", True)  # a platform is not a venue
     assert 2001 in g and 2002 not in g  # above the max line: article kept, book dropped
     assert 9001 not in g  # citations after the date do not count
     assert 9500 not in g  # younger than 8 years at the date
