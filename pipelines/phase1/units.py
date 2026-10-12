@@ -34,8 +34,19 @@ def main(run: str, t: int, out: str) -> None:
     c.execute("SET memory_limit = '48GB'")
     c.execute(f"SET temp_directory = '{out}/tmp'")
     c.execute(f"CREATE VIEW me AS SELECT * FROM '{run}/math-edges.parquet'")
-    c.execute(f"""CREATE TABLE ideas AS SELECT id, year, home_sub, cites_pre, log_n
-                  FROM '{run}/ideas-{t}.parquet' WHERE home_sub IS NOT NULL""")
+    # An idea whose home fell back to its own OpenAlex label (no arXiv, journal or citer evidence)
+    # takes its home from its math citers instead when at least half of its citations before T,
+    # and at least 5, come from math papers whose category is known: OpenAlex labels old works
+    # badly (Bredon's topology textbook is filed under high-energy physics).
+    c.execute(f"""CREATE TABLE mc AS SELECT cited AS id, count(*) AS n, mode(dest) AS dest
+                  FROM me WHERE year < {t} GROUP BY 1""")
+    c.execute(f"""CREATE TABLE ideas AS
+        SELECT i.id, i.year, i.cites_pre, i.log_n,
+               CASE WHEN i.home_rule = 'own-field' AND mc.n >= 5 AND mc.n >= 0.5 * i.cites_pre
+                    THEN cm.sub ELSE i.home_sub END AS home_sub
+        FROM '{run}/ideas-{t}.parquet' i LEFT JOIN mc USING (id)
+        LEFT JOIN '{run}/catmap.parquet' cm ON cm.cat = mc.dest""")
+    c.execute("DELETE FROM ideas WHERE home_sub IS NULL")
     # The home's habit: average citations per great idea from each math destination before T.
     c.execute(f"""CREATE TABLE habit AS
         WITH n AS (SELECT home_sub, count(*) AS ideas FROM ideas GROUP BY 1),

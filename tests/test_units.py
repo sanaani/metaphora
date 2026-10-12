@@ -21,8 +21,9 @@ def test_units_and_labels(tmp_path):
     c = duckdb.connect()
     write(
         c,
-        [(i, 2000, 2602, 50, 2.0) for i in (1, 2, 3)],
-        "id BIGINT, year INT, home_sub INT, cites_pre BIGINT, log_n DOUBLE",
+        [(i, 2000, 2602, 50, 2.0, "venue") for i in (1, 2, 3)]
+        + [(4, 1993, 3106, 6, 2.0, "own-field")],
+        "id BIGINT, year INT, home_sub INT, cites_pre BIGINT, log_n DOUBLE, home_rule VARCHAR",
         tmp_path / "ideas-2016.parquet",
     )
     edges = [
@@ -35,6 +36,8 @@ def test_units_and_labels(tmp_path):
         (104, 2020, 2, "math.AG"),  # shares an author with the idea: excluded
         (105, 2022, 2, "math.AG"),  # after the 4-year uptake window: not counted
         (110, 2020, 3, "math.AG"),  # idea 3 arrives after the 3-year arrival window
+        # idea 4: OpenAlex calls it physics, but 5 of its 6 citations come from math.AT papers
+        *[(120 + k, 2010, 4, "math.AT") for k in range(5)],
     ]
     write(
         c,
@@ -48,16 +51,24 @@ def test_units_and_labels(tmp_path):
         "dest VARCHAR, year INT, n BIGINT",
         tmp_path / "dest-size.parquet",
     )
+    write(
+        c,
+        [("math.AT", 2608), ("math.AG", 2602), ("math.CO", 2607)],
+        "cat VARCHAR, sub INT",
+        tmp_path / "catmap.parquet",
+    )
     authors = [(2, 1), (104, 1), (100, 2), (103, 2), (101, 3), (102, 4), (105, 5), (110, 6)]
     write(c, authors, "id BIGINT, author BIGINT", tmp_path / "authors.parquet")
     units.main(str(tmp_path), 2016, str(tmp_path / "out"))
     u = {
         (r[0], r[1]): r[2:]
         for r in duckdb.sql(
-            f"SELECT id, dest, arrived, later_others FROM '{tmp_path}/out/units-2016.parquet'"
+            f"SELECT id, dest, arrived, later_others, home_sub FROM '{tmp_path}/out/units-2016.parquet'"
         ).fetchall()
     }
     assert (1, "math.AG") not in u  # already cited there before T
-    assert not any(d == "math.CO" for _, d in u)  # near for this home
-    assert u[(2, "math.AG")] == (True, 2)
-    assert u[(3, "math.AG")] == (False, 0)
+    assert not any(d == "math.CO" for i, d in u if i < 4)  # near for the algebra home
+    assert u[(2, "math.AG")] == (True, 2, 2602)
+    assert u[(3, "math.AG")] == (False, 0, 2602)
+    assert (4, "math.AT") not in u  # its citers' area: already cited, and its home now
+    assert u[(4, "math.AG")][2] == 2608  # home taken from its math citers, not OpenAlex
